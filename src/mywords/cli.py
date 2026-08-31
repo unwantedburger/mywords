@@ -1,21 +1,21 @@
-"""nodict — slim Norwegian<->English dictionary + active-vocab drills.
+"""mywords — slim Norwegian<->English dictionary + active-vocab drills.
 
-  nodict glissen          # NO->EN
-  nodict sudorific        # EN: Norwegian equiv if clean, else definition + synonyms
-  nodict --throw 5        # random items from your word-of-day list
-  nodict --throw 5 -k idiom
+  mywords glissen          # NO->EN
+  mywords sudorific        # EN: Norwegian equiv if clean, else definition + synonyms
+  mywords --throw 5        # random items from your word-of-day list
+  mywords --throw 5 -k idiom
 """
 import argparse, json, random, sys
 from importlib.resources import files
 
-DATA = files("nodict") / "data"
+DATA = files("mywords") / "data"
 
 
 def _load(name):
     try:
         return json.loads((DATA / name).read_text(encoding="utf-8"))
     except FileNotFoundError:
-        sys.exit(f"nodict: missing data file {name}")
+        sys.exit(f"mywords: missing data file {name}")
 
 
 def lookup(word):
@@ -52,14 +52,14 @@ def throw(n, kind):
         want = "phrase" if kind == "idiom" else "word"
         items = [i for i in items if i["kind"] == want]
     if not items:
-        sys.exit("nodict: no matching word-of-day items")
+        sys.exit("mywords: no matching word-of-day items")
     for i in random.sample(items, min(n, len(items))):
         flag = "🇳🇴" if i["lang"] == "no" else "🇬🇧"
         print(f"  {flag}  {i['text']}")
 
 
 def main():
-    ap = argparse.ArgumentParser(prog="nodict",
+    ap = argparse.ArgumentParser(prog="mywords",
                                  description="Norwegian<->English dictionary + vocab drills")
     ap.add_argument("word", nargs="*", help="word or phrase to look up")
     ap.add_argument("-t", "--throw", type=int, metavar="N",

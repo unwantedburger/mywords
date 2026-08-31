@@ -3,7 +3,7 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "nodict"
+name = "mywords"
 version = "0.2.0"
 description = "Slim offline Norwegian<->English dictionary + active-vocabulary drills"
 readme = "README.md"
@@ -12,7 +12,7 @@ authors = [{ name = "Staale Nataas" }]
 dependencies = []
 
 [project.scripts]
-nodict = "nodict.cli:main"
+mywords = "mywords.cli:main"
 
 [tool.setuptools]
 package-dir = { "" = "src" }
@@ -21,4 +21,4 @@ package-dir = { "" = "src" }
 where = ["src"]
 
 [tool.setuptools.package-data]
-nodict = ["data/*.json"]
+mywords = ["data/*.json"]

@@ -1,32 +1,32 @@
-# nodict
+# mywords
 
 Slim offline **Norwegian ⇄ English** dictionary + active-vocabulary drills, as a
-single `nodict` CLI. A genuine dictionary with the trivial basics trimmed out,
+single `mywords` CLI. A genuine dictionary with the trivial basics trimmed out,
 plus your Beeminder word-of-day list for writing sessions.
 
 ```
-$ nodict glissen
+$ mywords glissen
 glissen (adj) → spread out, not crowded
 
-$ nodict sudorific                 # no clean Norwegian word → definition + synonyms
+$ mywords sudorific                 # no clean Norwegian word → definition + synonyms
 sudorific → inducing perspiration   syn: diaphoretic, sudatory
 
-$ nodict --throw 5                 # 5 random items from your word-of-day list
+$ mywords --throw 5                 # 5 random items from your word-of-day list
   🇬🇧  Behind the power curve
   🇳🇴  Stilt på prøve
   ...
-$ nodict --throw 5 -k idiom        # phrases/idioms only
+$ mywords --throw 5 -k idiom        # phrases/idioms only
 ```
 
 ## Install
 
 ```
-pipx install git+https://github.com/unwantedburger/nodict.git
-# or:  pip install git+https://github.com/unwantedburger/nodict.git
+pipx install git+https://github.com/unwantedburger/mywords.git
+# or:  pip install git+https://github.com/unwantedburger/mywords.git
 ```
 
 Pure-Python, **no runtime dependencies** — the dictionary and word list ship as
-JSON inside the package. Gives you a `nodict` command on your PATH.
+JSON inside the package. Gives you a `mywords` command on your PATH.
 
 ## What it does
 

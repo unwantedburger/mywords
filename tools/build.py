@@ -24,7 +24,7 @@ import wordfreq
 HERE      = Path(__file__).resolve().parent
 KAIKKI    = HERE / "kaikki-nob.jsonl"
 DIX       = HERE / "sources-apertium-nor-eng.dix"
-OUT       = HERE.parent / "src/nodict/data/dict.json"
+OUT       = HERE.parent / "src/mywords/data/dict.json"
 TRIM_ZIPF = 4.5
 SKIP_POS  = {"name", "suffix", "prefix", "character", "symbol"}
 
