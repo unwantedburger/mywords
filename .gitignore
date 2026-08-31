@@ -1,4 +1,7 @@
-kaikki-nob.jsonl
 .buildenv/
+tools/kaikki-nob.jsonl
 __pycache__/
-dict.sqlite
+*.egg-info/
+.eggs/
+dist/
+build/

@@ -24,7 +24,7 @@ import wordfreq
 HERE      = Path(__file__).resolve().parent
 KAIKKI    = HERE / "kaikki-nob.jsonl"
 DIX       = HERE / "sources-apertium-nor-eng.dix"
-OUT       = HERE / "dict.json"
+OUT       = HERE.parent / "src/nodict/data/dict.json"
 TRIM_ZIPF = 4.5
 SKIP_POS  = {"name", "suffix", "prefix", "character", "symbol"}
 
@@ -99,9 +99,30 @@ def main():
             continue
         en_out[en] = {"word": en, "no": sorted(nos)[:10]}
 
-    OUT.write_text(json.dumps({"no2en": no2en, "en2no": en_out}, ensure_ascii=False),
-                   encoding="utf-8")
-    print(f"built {OUT.name}: {len(no2en)} NO→EN + {len(en_out)} EN→NO  (trim zipf>={TRIM_ZIPF})")
+    # English definitions + synonyms (WordNet), pre-extracted so runtime needs no
+    # deps. The CLI shows a Norwegian equivalent when one exists, else this.
+    endef = {}
+    import wn
+    W = wn.Wordnet("oewn:2021")
+    for lemma in W.words():
+        w = lemma.lemma()
+        wl = w.lower()
+        if wl in endef or " " in wl:
+            continue
+        ss = W.synsets(w)
+        if not ss:
+            continue
+        d = ss[0].definition()
+        syn = []
+        for s in ss[:3]:
+            for l in s.lemmas():
+                if l.lower() != wl and l not in syn:
+                    syn.append(l)
+        endef[wl] = {"def": d, "syn": syn[:6]}
+
+    OUT.write_text(json.dumps({"no2en": no2en, "en2no": en_out, "endef": endef},
+                              ensure_ascii=False), encoding="utf-8")
+    print(f"built {OUT.name}: {len(no2en)} NO→EN + {len(en_out)} EN→NO + {len(endef)} EN defs")
     print(f"size: {OUT.stat().st_size/1e6:.1f} MB")
 
 

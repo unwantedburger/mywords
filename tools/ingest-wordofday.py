@@ -14,8 +14,8 @@ import json, re, urllib.request, urllib.parse
 from pathlib import Path
 
 HERE   = Path(__file__).resolve().parent
-DICT   = HERE / "dict.json"
-OUT    = HERE / "wordofday.json"
+DICT   = HERE.parent / "src/nodict/data/dict.json"
+OUT    = HERE.parent / "src/nodict/data/wordofday.json"
 SECRET = Path.home() / "secrets.txt"
 
 

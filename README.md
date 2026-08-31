@@ -1,52 +1,61 @@
-# nodict — slim Norwegian ⇄ English dictionary + active-vocab drills
+# nodict
 
-Offline, plain-JSON, hand-editable. A *genuine* dictionary with the trivial
-basics trimmed out, plus your Beeminder word-of-day list for writing drills.
+Slim offline **Norwegian ⇄ English** dictionary + active-vocabulary drills, as a
+single `nodict` CLI. A genuine dictionary with the trivial basics trimmed out,
+plus your Beeminder word-of-day list for writing sessions.
 
 ```
 $ nodict glissen
-glissen (adj)  🇳🇴→🇬🇧
-   spread out, not crowded
+glissen (adj) → spread out, not crowded
 
-$ nodict --throw 5          # 5 random items from your word-of-day list
+$ nodict sudorific                 # no clean Norwegian word → definition + synonyms
+sudorific → inducing perspiration   syn: diaphoretic, sudatory
+
+$ nodict --throw 5                 # 5 random items from your word-of-day list
   🇬🇧  Behind the power curve
   🇳🇴  Stilt på prøve
   ...
-$ nodict --throw 5 -k idiom # phrases/idioms only
+$ nodict --throw 5 -k idiom        # phrases/idioms only
 ```
 
-## Two stores (both plain JSON)
-
-- **`dict.json`** — the dictionary. Norwegian→English is the strong direction
-  (Wiktionary glosses via kaikki.org + Apertium pairs). English→Norwegian is
-  best-effort for now. Basics trimmed by word frequency (`wordfreq`, Zipf ≥ 4.5
-  dropped) so lookups land on words worth checking.
-- **`wordofday.json`** — your active-vocabulary target list, ingested + cleaned
-  from Beeminder `wordofday` (deduped, noise/empties dropped). Kept separate from
-  the dictionary. `--throw N` serves random items for a writing session.
-
-## Use / install
+## Install
 
 ```
-ln -s ~/dev/nodict/nodict ~/.local/bin/nodict     # then: nodict <word>
+pipx install git+https://github.com/unwantedburger/nodict.git
+# or:  pip install git+https://github.com/unwantedburger/nodict.git
 ```
 
-Runtime needs only python3 — `dict.json` + `wordofday.json` ship ready to use.
+Pure-Python, **no runtime dependencies** — the dictionary and word list ship as
+JSON inside the package. Gives you a `nodict` command on your PATH.
 
-## Rebuild / refresh
+## What it does
+
+- **Norwegian → English** (the strong direction): Wiktionary glosses (kaikki.org)
+  + Apertium pairs.
+- **English →**: a clean Norwegian equivalent when one exists, otherwise a short
+  **definition + synonyms** (WordNet) — a basic thesaurus.
+- The trivial basics are trimmed by word frequency (Zipf ≥ 4.5), so lookups land
+  on words worth checking.
+- **`--throw N`**: random pulls from `wordofday.json` — your active-vocabulary
+  target list, ingested + cleaned from Beeminder, kept separate from the
+  dictionary. Work them into today's writing.
+
+Counts: ~80k NO→EN, ~24k EN→NO, ~84k English definitions, ~600 word-of-day items.
+
+## Rebuild / refresh (dev)
+
+Everything under `tools/`. Needs the build venv (`.buildenv`, has `wordfreq` +
+`wn`) and the Wiktionary source `tools/kaikki-nob.jsonl` (78 MB, gitignored —
+re-download from kaikki.org's Norwegian Bokmål page).
 
 ```
-# dictionary (needs kaikki-nob.jsonl + the .buildenv venv with wordfreq):
-.buildenv/bin/python build.py
-# refresh the word-of-day list from Beeminder (token read in-process):
-python3 ingest-wordofday.py
+.buildenv/bin/python tools/build.py            # rebuild dict.json
+python3 tools/ingest-wordofday.py              # refresh word-of-day from Beeminder
 ```
 
-`kaikki-nob.jsonl` (78 MB Wiktionary source) is gitignored — re-download from
-kaikki.org's Norwegian Bokmål page. Tune `TRIM_ZIPF` in build.py to trim
-more/fewer basics.
+Tune `TRIM_ZIPF` in `tools/build.py` to trim more/fewer basics.
 
 ## Licence
 
-Wiktionary/kaikki = CC-BY-SA; Apertium = GPL. Fine for personal use; keep
-attribution + share-alike if ever redistributed.
+Wiktionary/kaikki = CC-BY-SA; Apertium = GPL; WordNet (OEWN) = CC-BY. Personal
+use is fine; keep attribution + share-alike if ever redistributed.
