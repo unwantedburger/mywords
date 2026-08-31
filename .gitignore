@@ -1,2 +1,4 @@
-dict.sqlite
+kaikki-nob.jsonl
+.buildenv/
 __pycache__/
+dict.sqlite

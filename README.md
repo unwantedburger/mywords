@@ -1,58 +1,52 @@
-# nodict — offline Norwegian ⇄ English dictionary
+# nodict — slim Norwegian ⇄ English dictionary + active-vocab drills
 
-A single-file SQLite dictionary + a small CLI. Offline, instant, zero-budget.
-
-```
-$ nodict hund
-🇳🇴 hund
-   → dog  (noun)
-
-$ nodict freedom
-🇬🇧 freedom
-   → frihet  (noun)
-   → ytringsfrihet  (noun)   # freedom of speech
-```
-
-## What it is
-
-- **Data:** [Apertium `nor-eng`](https://github.com/apertium/apertium-nor-eng)
-  — the purpose-built open Norwegian⇄English bilingual lexicon (GPL). Clean
-  lemma→lemma pairs with part-of-speech.
-- **Store:** `dict.sqlite` — **~2.0 MB**, ~24.9k pairs (~19.6k Norwegian
-  headwords, ~17.7k English). Indexed both directions.
-- **Access:** `nodict <word>` auto-detects the language and shows translations
-  both ways. `-s <prefix>` lists suggestions.
-
-## Install
+Offline, plain-JSON, hand-editable. A *genuine* dictionary with the trivial
+basics trimmed out, plus your Beeminder word-of-day list for writing drills.
 
 ```
-ln -s ~/dev/nodict/nodict ~/.local/bin/nodict   # or /usr/local/bin
-# optional short alias in ~/.zshrc:  alias ord='nodict'
+$ nodict glissen
+glissen (adj)  🇳🇴→🇬🇧
+   spread out, not crowded
+
+$ nodict --throw 5          # 5 random items from your word-of-day list
+  🇬🇧  Behind the power curve
+  🇳🇴  Stilt på prøve
+  ...
+$ nodict --throw 5 -k idiom # phrases/idioms only
 ```
 
-## Rebuild
+## Two stores (both plain JSON)
+
+- **`dict.json`** — the dictionary. Norwegian→English is the strong direction
+  (Wiktionary glosses via kaikki.org + Apertium pairs). English→Norwegian is
+  best-effort for now. Basics trimmed by word frequency (`wordfreq`, Zipf ≥ 4.5
+  dropped) so lookups land on words worth checking.
+- **`wordofday.json`** — your active-vocabulary target list, ingested + cleaned
+  from Beeminder `wordofday` (deduped, noise/empties dropped). Kept separate from
+  the dictionary. `--throw N` serves random items for a writing session.
+
+## Use / install
 
 ```
-python3 build.py          # re-parses sources-apertium-nor-eng.dix -> dict.sqlite
+ln -s ~/dev/nodict/nodict ~/.local/bin/nodict     # then: nodict <word>
 ```
 
-## Coverage & making it richer
+Runtime needs only python3 — `dict.json` + `wordofday.json` ship ready to use.
 
-v1 covers ~20k common headwords with clean translations, but no definitions,
-senses, or examples, and misses rarer/technical words.
+## Rebuild / refresh
 
-To go deeper there's a bigger source: **Wiktionary via kaikki.org** (the
-Norwegian Bokmål extract is ~68 MB of JSONL with definitions, senses, usage
-examples, and inflections). Merging it in would:
-- add definitions + example sentences + inflected-form lookups,
-- widen coverage to 100k+ headwords,
-- grow the DB to roughly **15–40 MB** depending on how much is kept.
+```
+# dictionary (needs kaikki-nob.jsonl + the .buildenv venv with wordfreq):
+.buildenv/bin/python build.py
+# refresh the word-of-day list from Beeminder (token read in-process):
+python3 ingest-wordofday.py
+```
 
-The schema (`pair` table) is designed to be enriched: a `sense`/`example`
-column set can be joined on without changing the CLI. Say the word and I'll wire
-the Wiktionary layer in.
+`kaikki-nob.jsonl` (78 MB Wiktionary source) is gitignored — re-download from
+kaikki.org's Norwegian Bokmål page. Tune `TRIM_ZIPF` in build.py to trim
+more/fewer basics.
 
-## Licence note
+## Licence
 
-Apertium data is GPL; Wiktionary is CC-BY-SA. Fine for personal use; if ever
-redistributed, keep attribution + share-alike.
+Wiktionary/kaikki = CC-BY-SA; Apertium = GPL. Fine for personal use; keep
+attribution + share-alike if ever redistributed.

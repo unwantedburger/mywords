@@ -1,79 +1,86 @@
 #!/usr/bin/env python3
-"""nodict — offline Norwegian<->English dictionary lookup.
+"""nodict — slim offline Norwegian<->English dictionary + active-vocab drills.
 
-  nodict hund            # auto: finds 'hund' on either side -> dog
-  nodict dog             # -> hund
-  nodict "rød vin"       # multiword
-  nodict -s tran         # -s: prefix/substring suggestions when unsure
+  nodict glissen          # NO->EN: spread out, not crowded
+  nodict sparse           # EN->NO: glissen, spredt
+  nodict "rød vin"        # multiword
+  nodict --throw 5        # 5 random words/idioms from your word-of-day list
+  nodict --throw 5 -k idiom   # only phrases/idioms
 
-Backed by dict.sqlite (Apertium nor-eng). Offline, instant, zero-budget.
+Data (plain JSON, hand-editable):
+  dict.json       — the dictionary (Wiktionary depth, basics trimmed)
+  wordofday.json  — your active-vocabulary target list (from Beeminder)
 """
-import argparse, sqlite3, sys
+import argparse, json, random, sys
 from pathlib import Path
 
-DB = Path(__file__).resolve().parent / "dict.sqlite"
-POS = {"n":"noun","np":"proper noun","vblex":"verb","adj":"adj","adv":"adv",
-       "pr":"prep","prn":"pron","cnjcoo":"conj","cnjsub":"conj","ij":"interj",
-       "num":"num","det":"det","part":"part"}
+HERE = Path(__file__).resolve().parent
+DICT = HERE / "dict.json"
+WOD  = HERE / "wordofday.json"
 
 
-def pretty(p):
-    return POS.get(p, p) if p else ""
+def load_dict():
+    if not DICT.exists():
+        sys.exit(f"no dictionary at {DICT} — run build.py")
+    return json.loads(DICT.read_text(encoding="utf-8"))
 
 
-def lookup(con, word):
+def show_lookup(word):
+    d = load_dict()
     w = word.strip().lower()
-    no2en = con.execute(
-        "SELECT DISTINCT no,no_pos,en,en_pos FROM pair WHERE no_lc=? ORDER BY en", (w,)).fetchall()
-    en2no = con.execute(
-        "SELECT DISTINCT en,en_pos,no,no_pos FROM pair WHERE en_lc=? ORDER BY no", (w,)).fetchall()
-    return no2en, en2no
+    hit = False
+    e = d["no2en"].get(w)
+    if e:
+        hit = True
+        pos = f" ({e['pos']})" if e.get("pos") else ""
+        print(f"\033[1m{e['word']}\033[0m{pos}  🇳🇴→🇬🇧")
+        for g in e["en"]:
+            print(f"   {g}")
+    e = d["en2no"].get(w)
+    if e:
+        hit = True
+        print(f"\033[1m{e['word']}\033[0m  🇬🇧→🇳🇴")
+        print("   " + ", ".join(e["no"]))
+    if not hit:
+        # prefix suggestions
+        sug = [k for k in list(d["no2en"]) + list(d["en2no"]) if k.startswith(w)][:12]
+        print(f"'{word}' not found.")
+        if sug:
+            print("did you mean: " + ", ".join(sorted(set(sug))))
+        sys.exit(1)
 
 
-def suggest(con, word, limit=25):
-    w = word.strip().lower()
-    rows = con.execute(
-        "SELECT DISTINCT no FROM pair WHERE no_lc LIKE ? UNION "
-        "SELECT DISTINCT en FROM pair WHERE en_lc LIKE ? LIMIT ?",
-        (w + "%", w + "%", limit)).fetchall()
-    return [r[0] for r in rows]
+def throw(n, kind):
+    if not WOD.exists():
+        sys.exit(f"no word-of-day list at {WOD} — run ingest-wordofday.py")
+    items = json.loads(WOD.read_text(encoding="utf-8"))
+    if kind == "idiom":
+        items = [i for i in items if i["kind"] == "phrase"]
+    elif kind == "word":
+        items = [i for i in items if i["kind"] == "word"]
+    if not items:
+        sys.exit("no matching items in your word-of-day list")
+    for i in random.sample(items, min(n, len(items))):
+        flag = "🇳🇴" if i["lang"] == "no" else "🇬🇧"
+        print(f"  {flag}  {i['text']}")
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Offline Norwegian<->English dictionary")
-    ap.add_argument("word", nargs="+", help="word or phrase to look up")
-    ap.add_argument("-s", "--suggest", action="store_true",
-                    help="show prefix suggestions instead of exact lookup")
+    ap = argparse.ArgumentParser(description="Norwegian<->English dictionary + vocab drills")
+    ap.add_argument("word", nargs="*", help="word or phrase to look up")
+    ap.add_argument("-t", "--throw", type=int, metavar="N",
+                    help="serve N random items from your word-of-day list")
+    ap.add_argument("-k", "--kind", choices=["word", "idiom", "any"], default="any",
+                    help="with --throw: restrict to words or idioms/phrases")
     args = ap.parse_args()
-    word = " ".join(args.word)
 
-    if not DB.exists():
-        sys.exit(f"no database at {DB} — run build.py first")
-    con = sqlite3.connect(DB)
-
-    if args.suggest:
-        hits = suggest(con, word)
-        print("\n".join(hits) if hits else f"(no words starting with '{word}')")
+    if args.throw is not None:
+        throw(args.throw, args.kind)
         return
-
-    no2en, en2no = lookup(con, word)
-    if not no2en and not en2no:
-        hits = suggest(con, word)
-        print(f"'{word}' not found.")
-        if hits:
-            print("did you mean: " + ", ".join(hits[:12]))
-        sys.exit(1)
-
-    if no2en:
-        print(f"🇳🇴 {word}")
-        for no, nop, en, enp in no2en:
-            tag = f"  [{pretty(nop)}]" if nop else ""
-            print(f"   → {en}{('  ('+pretty(enp)+')') if enp else ''}{tag}")
-    if en2no:
-        print(f"🇬🇧 {word}")
-        for en, enp, no, nop in en2no:
-            tag = f"  [{pretty(enp)}]" if enp else ""
-            print(f"   → {no}{('  ('+pretty(nop)+')') if nop else ''}{tag}")
+    if not args.word:
+        ap.print_help()
+        return
+    show_lookup(" ".join(args.word))
 
 
 if __name__ == "__main__":
