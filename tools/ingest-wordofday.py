@@ -4,8 +4,16 @@ them, and store them as wordofday.json: his active-vocabulary target list, kept
 separate from the dictionary. `nodict --throw N` serves random items from here.
 
 Cleaning: strip, drop empties + pure-punctuation junk, dedupe (case-insensitive,
-keeping the first-seen casing). Language is a best guess (æøå or a known
-Norwegian headword → 'no', else 'en'); kind is word vs phrase.
+keeping the first-seen casing). Language is a best guess; kind is word vs phrase.
+
+Language detection (see detect_lang): æøå → 'no' outright, else score tokens
+against the NO vs EN dictionaries and only call it Norwegian when it clearly
+leans NO. The old "any token is a Norwegian headword → no" test mis-tagged ~23%
+of the (mostly-English) corpus because English phrases routinely contain a word
+that also exists as a Norwegian headword ("as", "under", "regime", "hat"…).
+Default is English; a mislabel-as-English just shows unmarked, which is the safe
+failure. (Fixed 2026-09-01 after Staale flagged the flags as "off in a terrible
+way".)
 
 Credential (Rule 14): token read in-process from ~/.../secrets.txt and never
 printed — not the token, not the built URL.
@@ -29,10 +37,27 @@ def fetch_comments():
     return [(p.get("comment") or "").strip() for p in pts]
 
 
+def detect_lang(text, no_heads, en_heads):
+    """Best-guess 'no'/'en'. æøå is decisive; otherwise the text must lean
+    clearly Norwegian (more NO-dictionary hits than EN, and at least half its
+    tokens in the NO dictionary) — else it defaults to English. Conservative by
+    design: an unmarked Norwegian item is far less jarring than a mislabelled one."""
+    if re.search(r"[æøåÆØÅ]", text):
+        return "no"
+    toks = [t for t in re.findall(r"[A-Za-zæøåÆØÅ']+", text.lower()) if len(t) > 1]
+    if not toks:
+        return "en"
+    no_hits = sum(t in no_heads for t in toks)
+    en_hits = sum(t in en_heads for t in toks)
+    return "no" if (no_hits > en_hits and no_hits >= max(1, len(toks) // 2)) else "en"
+
+
 def main():
-    no_heads = set()
+    no_heads, en_heads = set(), set()
     if DICT.exists():
-        no_heads = set(json.loads(DICT.read_text())["no2en"].keys())
+        d = json.loads(DICT.read_text())
+        no_heads = set(d["no2en"].keys())
+        en_heads = set(d.get("endef", {}).keys()) | set(d.get("en2no", {}).keys())
 
     seen, items = set(), []
     for c in fetch_comments():
@@ -42,10 +67,8 @@ def main():
         if key in seen:
             continue
         seen.add(key)
-        words = re.findall(r"[A-Za-zæøåÆØÅ']+", c)
-        is_no = bool(re.search(r"[æøåÆØÅ]", c)) or any(w.lower() in no_heads for w in words)
         items.append({"text": c,
-                      "lang": "no" if is_no else "en",
+                      "lang": detect_lang(c, no_heads, en_heads),
                       "kind": "word" if len(c.split()) == 1 else "phrase"})
 
     OUT.write_text(json.dumps(items, ensure_ascii=False, indent=1), encoding="utf-8")

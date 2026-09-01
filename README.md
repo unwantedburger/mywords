@@ -12,8 +12,8 @@ $ mywords sudorific                 # no clean Norwegian word → definition + s
 sudorific → inducing perspiration   syn: diaphoretic, sudatory
 
 $ mywords --throw 5                 # 5 random items from your word-of-day list
-  🇬🇧  Behind the power curve
-  🇳🇴  Stilt på prøve
+      Behind the power curve        # English is unmarked (the default)
+  🇳🇴  Stilt på prøve               # Norwegian items get a flag
   ...
 $ mywords --throw 5 -k idiom        # phrases/idioms only
 ```

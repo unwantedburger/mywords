@@ -54,8 +54,12 @@ def throw(n, kind):
     if not items:
         sys.exit("mywords: no matching word-of-day items")
     for i in random.sample(items, min(n, len(items))):
-        flag = "🇳🇴" if i["lang"] == "no" else "🇬🇧"
-        print(f"  {flag}  {i['text']}")
+        # English is the default (unmarked); only Norwegian items get a flag,
+        # sitting in the left gutter so the English bodies stay aligned.
+        if i["lang"] == "no":
+            print(f"  🇳🇴  {i['text']}")
+        else:
+            print(f"      {i['text']}")
 
 
 def main():
