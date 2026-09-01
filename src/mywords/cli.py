@@ -4,6 +4,7 @@
   mywords sudorific        # EN: Norwegian equiv if clean, else definition + synonyms
   mywords --throw 5        # random items from your word-of-day list
   mywords --throw 5 -k idiom
+  mywords --throw 5 --norwegian   # only Norwegian items (-N; --english/-E for EN)
 """
 import argparse, json, random, sys
 from importlib.resources import files
@@ -46,11 +47,13 @@ def lookup(word):
     print("\n".join(out))
 
 
-def throw(n, kind):
+def throw(n, kind, lang=None):
     items = _load("wordofday.json")
     if kind in ("idiom", "word"):
         want = "phrase" if kind == "idiom" else "word"
         items = [i for i in items if i["kind"] == want]
+    if lang in ("no", "en"):
+        items = [i for i in items if i["lang"] == lang]
     if not items:
         sys.exit("mywords: no matching word-of-day items")
     for i in random.sample(items, min(n, len(items))):
@@ -70,10 +73,15 @@ def main():
                     help="serve N random items from your word-of-day list")
     ap.add_argument("-k", "--kind", choices=["word", "idiom", "any"], default="any",
                     help="with --throw: restrict to words or idioms")
+    lang = ap.add_mutually_exclusive_group()
+    lang.add_argument("-N", "--norwegian", action="store_const", const="no", dest="lang",
+                      help="with --throw: only Norwegian items")
+    lang.add_argument("-E", "--english", action="store_const", const="en", dest="lang",
+                      help="with --throw: only English items")
     args = ap.parse_args()
 
     if args.throw is not None:
-        throw(args.throw, args.kind)
+        throw(args.throw, args.kind, args.lang)
     elif args.word:
         lookup(" ".join(args.word))
     else:

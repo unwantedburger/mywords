@@ -16,6 +16,7 @@ $ mywords --throw 5                 # 5 random items from your word-of-day list
   🇳🇴  Stilt på prøve               # Norwegian items get a flag
   ...
 $ mywords --throw 5 -k idiom        # phrases/idioms only
+$ mywords --throw 5 --norwegian     # only Norwegian items (-N; --english/-E for EN)
 ```
 
 ## Install
