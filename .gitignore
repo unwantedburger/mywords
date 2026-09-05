@@ -1,5 +1,6 @@
 .buildenv/
 tools/kaikki-nob.jsonl
+tools/kaikki-eng.jsonl
 tools/lib/
 __pycache__/
 *.egg-info/

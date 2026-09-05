@@ -23,6 +23,7 @@ import wordfreq
 
 HERE      = Path(__file__).resolve().parent
 KAIKKI    = HERE / "kaikki-nob.jsonl"
+ENG       = HERE / "kaikki-eng.jsonl"    # English Wiktionary extract (EN→NO translations)
 DIX       = HERE / "sources-apertium-nor-eng.dix"
 OUT       = HERE.parent / "src/mywords/data/dict.json"
 TRIM_ZIPF = 4.5
@@ -99,10 +100,50 @@ def main():
     en_out = {}
     for en, nos in en2no.items():
         # English headwords only: no Norwegian letters (drops 'rød'→'Rød' noise),
-        # and skip the everyday basics.
+        # and skip the everyday basics. This trim guards the WEAK sources
+        # (inverted glosses + Apertium), which are noisy; the curated Wiktionary
+        # translation tables below bypass it.
         if any(c in en for c in "æøå") or wordfreq.zipf_frequency(en, "en") >= TRIM_ZIPF:
             continue
         en_out[en] = {"word": en, "no": sorted(nos)[:10]}
+
+    # English Wiktionary translation tables (kaikki English extract) — the
+    # authoritative EN→NO source: multiple sense-tagged Norwegian equivalents
+    # per English word. Bokmål (nb) + generic Norwegian (no); Nynorsk (nn) is
+    # skipped so this stays a Bokmål dictionary, matching the NO source. These
+    # are curated, not noise, so they BYPASS the frequency trim above — that's
+    # why common words like 'freedom' → 'frihet' now resolve. Translations lead
+    # the list (higher quality), then any inverted-gloss hits, deduped.
+    if ENG.exists():
+        trans = {}
+        for line in open(ENG, encoding="utf-8"):
+            o = json.loads(line)
+            if o.get("pos") in SKIP_POS:
+                continue
+            w = (o.get("word") or "").strip().lower()
+            if not w or any(c in w for c in "æøå"):
+                continue
+            # Translations live BOTH at the top level (e.g. 'dictionary') AND
+            # nested per-sense (e.g. 'freedom', 'consistency'). Gather from both.
+            tlists = [o.get("translations") or []]
+            tlists += [s.get("translations") or [] for s in o.get("senses", [])]
+            for tl in tlists:
+                for t in tl:
+                    if t.get("code") not in ("nb", "no"):
+                        continue
+                    no = (t.get("word") or "").strip()
+                    no = re.sub(r"\s*\([^)]*\)", "", no).strip()   # drop sense refs "(1-5)"
+                    if no and re.search(r"[a-zæøå]", no.lower()) and len(no.split()) <= 3:
+                        trans.setdefault(w, []).append(no)
+        for w, nos in trans.items():
+            existing = en_out.get(w, {}).get("no", [])
+            merged, seen = [], set()                        # translations first
+            for n in nos + existing:                        # dedupe case-insensitively
+                k = n.casefold()
+                if k not in seen:
+                    seen.add(k)
+                    merged.append(n)
+            en_out[w] = {"word": w, "no": merged[:10]}
 
     # English definitions + synonyms (WordNet), pre-extracted so runtime needs no
     # deps. The CLI shows a Norwegian equivalent when one exists, else this.
