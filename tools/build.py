@@ -34,10 +34,15 @@ def clean(s):
 
 
 def en_terms(g):
+    # Strip parenthetical notes from the WHOLE gloss BEFORE splitting on
+    # punctuation. Otherwise a gloss like "consistency (the way a substance
+    # holds together; thickness, viscosity)" splits on the inner ';,' into
+    # fragments with unbalanced parens, which then fail the <=2-word filter —
+    # so the headword (konsistens) never gets indexed under "consistency".
+    g = re.sub(r"\([^)]*\)", " ", g)
     out = []
     for part in re.split(r"[;,/]", g):
         p = re.sub(r"^\s*(to|a|an|the)\s+", "", part.strip().lower())
-        p = re.sub(r"\(.*?\)", "", p).strip()
         if p and len(p.split()) <= 2 and re.fullmatch(r"[a-zæøå' -]+", p):
             out.append(p)
     return out
